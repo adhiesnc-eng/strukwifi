@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Struk WiFi Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --receipt-bg: #ffffff;
+            --wm-opacity: 0.1;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .font-mono-receipt {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Watermark Styles */
+        .watermark-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+            font-size: 4rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: rgba(0,0,0,var(--wm-opacity));
+        }
+
+        /* Paper Sizes */
+        .paper-a4 { width: 210mm; min-height: 297mm; }
+        .paper-80mm { width: 80mm; }
+        .paper-58mm { width: 58mm; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0; margin: 0; }
+            #receipt-container { 
+                box-shadow: none !important; 
+                margin: 0 auto !important;
+                border: none !important;
+                transform: none !important;
+            }
+        }
+
+        /* Print Mode: Black & White */
+        .print-bw {
+            filter: grayscale(100%) contrast(1.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+
+    <!-- PWA Settings by it.adi.p -->
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <nav class="no-print bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <span class="font-extrabold text-slate-800 tracking-tight hidden sm:inline">WiFiManager<span class="text-blue-600">Pro</span></span>
+            </div>
+            
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="saveToCloud()" class="flex items-center gap-2 bg-slate-800 hover:bg-black text-white px-3 py-2 rounded-xl text-sm font-semibold transition active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    <span class="hidden xs:inline">Simpan</span>
+                </button>
+                <button onclick="openPrintModal()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-blue-200 transition active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Cetak Struk
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Grid -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 lg:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Input Panel (Left Column) -->
+            <section class="no-print lg:col-span-5 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-5">Pengaturan Bisnis</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nama Usaha</label>
+                                <input type="text" id="in-usaha" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="WiFi Kita">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nama Pemilik / TTD</label>
+                                <input type="text" id="in-pemilik" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Nama Pemilik">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Watermark</label>
+                                <input type="text" id="in-watermark" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="LUNAS">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Tanggal Transaksi</label>
+                                <input type="date" id="in-tanggal" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-5">Detail Pelanggan</h2>
+                    <div class="space-y-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Nama Pelanggan</label>
+                            <input type="text" id="in-nama" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Nama lengkap">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Paket Layanan</label>
+                            <input type="text" id="in-paket" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Voucher 1 Bulan">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Total Tagihan (Rp)</label>
+                            <input type="number" id="in-harga" oninput="liveSync()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+                <div id="save-status" class="text-center h-4 text-[11px] font-medium text-slate-400 italic"></div>
+            </section>
+
+            <!-- Preview Panel (Right Column) -->
+            <section class="lg:col-span-7 flex flex-col items-center lg:items-start overflow-x-auto lg:overflow-visible">
+                <h2 class="no-print text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    Live Preview Struk
+                </h2>
+
+                <div class="w-full flex justify-center lg:justify-start pb-10">
+                    <!-- The Receipt Paper -->
+                    <div id="receipt-container" class="bg-white p-6 sm:p-10 shadow-2xl relative overflow-hidden border-t-8 border-blue-600 paper-80mm transition-all duration-300 min-h-[500px]">
+                        
+                        <!-- Watermark -->
+                        <div id="out-watermark" class="watermark-text"></div>
+
+                        <div class="relative z-10 font-mono-receipt" id="receipt-content">
+                            <div class="text-center mb-10">
+                                <h3 id="out-usaha" class="text-2xl font-black text-slate-900 uppercase leading-none mb-1">NAMA USAHA</h3>
+                                <p class="text-[9px] text-slate-400 tracking-[0.3em] uppercase mb-4">Bukti Pembayaran Digital</p>
+                                <div class="border-b border-slate-200 border-dashed mb-1"></div>
+                                <div class="border-b border-slate-200 border-dashed"></div>
+                                <p id="out-tanggal" class="text-[10px] mt-3 text-slate-500 font-bold"></p>
+                            </div>
+
+                            <div class="space-y-4 text-xs sm:text-sm">
+                                <div class="flex justify-between items-baseline border-b border-slate-50 pb-1">
+                                    <span class="text-slate-400 text-[10px]">PELANGGAN</span>
+                                    <span id="out-nama" class="font-bold text-slate-800">---</span>
+                                </div>
+                                <div class="flex justify-between items-baseline border-b border-slate-50 pb-1">
+                                    <span class="text-slate-400 text-[10px]">LAYANAN</span>
+                                    <span id="out-paket" class="font-bold text-slate-800 uppercase">---</span>
+                                </div>
+                                <div class="flex justify-between items-baseline">
+                                    <span class="text-slate-400 text-[10px]">STATUS</span>
+                                    <span class="text-emerald-600 font-black">LUNAS</span>
+                                </div>
+
+                                <div class="mt-8 pt-4 border-t-2 border-double border-slate-200">
+                                    <div class="flex justify-between items-end">
+                                        <span class="text-[11px] font-bold text-slate-400">TOTAL DIBAYAR</span>
+                                        <span id="out-harga" class="text-xl sm:text-2xl font-black text-blue-700">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TTD Section -->
+                            <div class="mt-12 flex flex-col items-end">
+                                <div class="text-center min-w-[120px]">
+                                    <p class="text-[10px] text-slate-500 mb-10">Hormat Kami,</p>
+                                    <div class="border-b border-slate-300 w-full mb-1"></div>
+                                    <p id="out-pemilik" class="text-[11px] font-bold text-slate-800 italic uppercase">(PEMILIK)</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-12 text-center">
+                                <div class="border-t border-slate-100 pt-5">
+                                    <p class="text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-widest leading-loose">
+                                        Terima kasih atas pembayaran Anda.<br>
+                                        Struk ini dihasilkan secara otomatis oleh sistem administrasi.
+                                    </p>
+                                    <p id="out-footer" class="text-[10px] mt-4 font-bold text-slate-300 italic"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Print Settings Modal (Pop-up) -->
+    <div id="print-modal" class="no-print fixed inset-0 z-50 flex items-center justify-center hidden p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onclick="closePrintModal()"></div>
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative z-10 overflow-hidden border border-white/20 animate-in fade-in zoom-in duration-200">
+            <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                Opsi Cetak Pintar
+            </h3>
+
+            <div class="space-y-6">
+                <!-- Paper Size -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Ukuran Kertas</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setPaper('paper-a4')" class="paper-btn border-2 border-slate-100 p-2.5 rounded-xl text-xs font-bold transition hover:bg-slate-50" id="btn-a4">A4</button>
+                        <button onclick="setPaper('paper-80mm')" class="paper-btn border-2 border-slate-100 p-2.5 rounded-xl text-xs font-bold transition hover:bg-slate-50" id="btn-80">80mm</button>
+                        <button onclick="setPaper('paper-58mm')" class="paper-btn border-2 border-slate-100 p-2.5 rounded-xl text-xs font-bold transition hover:bg-slate-50" id="btn-58">58mm</button>
+                    </div>
+                </div>
+
+                <!-- Black/White Switch -->
+                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                    <div>
+                        <span class="block text-sm font-bold text-slate-700">Mode Hemat Tinta</span>
+                        <span class="text-[10px] text-slate-500 uppercase font-medium">Hitam & Putih Saja</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" onchange="toggleBW(this.checked)" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <!-- Range Adjustments -->
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-400">
+                            <span>BESAR FONT</span>
+                            <span id="val-font" class="text-blue-600">14px</span>
+                        </div>
+                        <input type="range" min="10" max="24" value="14" oninput="adjustFont(this.value)" class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-400">
+                            <span>VISIBILITAS WATERMARK</span>
+                            <span id="val-wm" class="text-blue-600">10%</span>
+                        </div>
+                        <input type="range" min="0" max="40" value="10" oninput="adjustWM(this.value)" class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-4 border-t border-slate-100">
+                    <button onclick="closePrintModal()" class="flex-1 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-2xl transition">Batal</button>
+                    <button onclick="window.print()" class="flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-200 hover:bg-blue-700 transition">KONFIRMASI & CETAK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Initialization
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'wifi-receipt-responsive';
+
+        let currentUser = null;
+        const today = new Date().toISOString().split('T')[0];
+
+        // Auth Setup
+        async function startAuth() {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        }
+
+        startAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                fetchData();
+            }
+        });
+
+        // Fetch & Sync Logic
+        function fetchData() {
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'active_receipt');
+            onSnapshot(docRef, (snap) => {
+                if (snap.exists()) {
+                    const d = snap.data();
+                    document.getElementById('in-usaha').value = d.usaha || "";
+                    document.getElementById('in-pemilik').value = d.pemilik || "";
+                    document.getElementById('in-watermark').value = d.watermark || "";
+                    document.getElementById('in-nama').value = d.nama || "";
+                    document.getElementById('in-paket').value = d.paket || "";
+                    document.getElementById('in-harga').value = d.harga || "";
+                    document.getElementById('in-tanggal').value = d.tanggal || today;
+                    liveSync();
+                } else {
+                    document.getElementById('in-tanggal').value = today;
+                    liveSync();
+                }
+            });
+        }
+
+        window.liveSync = () => {
+            const data = {
+                usaha: document.getElementById('in-usaha').value || "NAMA USAHA",
+                pemilik: document.getElementById('in-pemilik').value || "PEMILIK",
+                wm: document.getElementById('in-watermark').value || "",
+                nama: document.getElementById('in-nama').value || "---",
+                paket: document.getElementById('in-paket').value || "---",
+                harga: document.getElementById('in-harga').value || 0,
+                tgl: document.getElementById('in-tanggal').value || today
+            };
+
+            // Update UI
+            document.getElementById('out-usaha').innerText = data.usaha;
+            document.getElementById('out-footer').innerText = data.usaha;
+            document.getElementById('out-pemilik').innerText = "(" + data.pemilik.toUpperCase() + ")";
+            document.getElementById('out-watermark').innerText = data.wm;
+            document.getElementById('out-nama').innerText = data.nama;
+            document.getElementById('out-paket').innerText = data.paket;
+            
+            const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(data.harga);
+            document.getElementById('out-harga').innerText = fmt;
+
+            const dObj = new Date(data.tgl);
+            document.getElementById('out-tanggal').innerText = dObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
+        };
+
+        window.saveToCloud = async () => {
+            if (!currentUser) return;
+            const status = document.getElementById('save-status');
+            status.innerText = "⏳ Menyimpan ke database...";
+
+            const payload = {
+                usaha: document.getElementById('in-usaha').value,
+                pemilik: document.getElementById('in-pemilik').value,
+                watermark: document.getElementById('in-watermark').value,
+                nama: document.getElementById('in-nama').value,
+                paket: document.getElementById('in-paket').value,
+                harga: document.getElementById('in-harga').value,
+                tanggal: document.getElementById('in-tanggal').value,
+                updatedAt: Date.now()
+            };
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'active_receipt');
+                await setDoc(docRef, payload);
+                status.innerText = "✅ Perubahan berhasil disimpan";
+                setTimeout(() => status.innerText = "", 3000);
+            } catch (e) {
+                status.innerText = "❌ Koneksi bermasalah";
+            }
+        };
+
+        // Modal & Print UI Control
+        window.openPrintModal = () => document.getElementById('print-modal').classList.remove('hidden');
+        window.closePrintModal = () => document.getElementById('print-modal').classList.add('hidden');
+
+        window.setPaper = (size) => {
+            const container = document.getElementById('receipt-container');
+            container.classList.remove('paper-a4', 'paper-80mm', 'paper-58mm');
+            container.classList.add(size);
+            
+            document.querySelectorAll('.paper-btn').forEach(btn => btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-600'));
+            const map = {'paper-a4': 'btn-a4', 'paper-80mm': 'btn-80', 'paper-58mm': 'btn-58'};
+            document.getElementById(map[size]).classList.add('border-blue-500', 'bg-blue-50', 'text-blue-600');
+        };
+
+        window.toggleBW = (on) => {
+            if (on) document.body.classList.add('print-bw');
+            else document.body.classList.remove('print-bw');
+        };
+
+        window.adjustFont = (val) => {
+            document.getElementById('receipt-content').style.fontSize = val + 'px';
+            document.getElementById('val-font').innerText = val + 'px';
+        };
+
+        window.adjustWM = (val) => {
+            document.documentElement.style.setProperty('--wm-opacity', val / 100);
+            document.getElementById('val-wm').innerText = val + '%';
+        };
+
+        // Initial setup
+        setPaper('paper-80mm');
+    </script>
+
+    <!-- Floating Install Prompt UI -->
+    <div id="pwa-install-banner" style="display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:99999; background:#3b82f6; color:white; padding:14px 28px; border-radius:50px; box-shadow:0 12px 30px rgba(0,0,0,0.4); font-family:'Plus Jakarta Sans', sans-serif; cursor:pointer; align-items:center; gap:12px; font-weight:bold; border: 2px solid rgba(255,255,255,0.2); transition: all 0.3s ease;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>INSTAL APLIKASI</span>
+    </div>
+
+    <script>
+      let deferredPrompt;
+      const installBanner = document.getElementById('pwa-install-banner');
+
+      // Register Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('PWA Registered Successfully'))
+            .catch(err => console.log('PWA Registration Failed', err));
+        });
+      }
+
+      // Capture the install prompt event
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Show the banner
+        installBanner.style.display = 'flex';
+      });
+
+      // Handle the install button click
+      installBanner.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to install: ${outcome}`);
+          deferredPrompt = null;
+          installBanner.style.display = 'none';
+        }
+      });
+
+      // Hide if already installed
+      window.addEventListener('appinstalled', () => {
+        installBanner.style.display = 'none';
+        deferredPrompt = null;
+        console.log('PWA was installed');
+      });
+    </script>
+</body>
+</html>
